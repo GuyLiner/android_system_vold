@@ -1028,9 +1028,6 @@ static int load_crypto_mapping_table(struct crypt_mnt_ftr *crypt_ftr, unsigned c
 
   crypt_params = buffer + sizeof(struct dm_ioctl) + sizeof(struct dm_target_spec);
 #ifdef CONFIG_HW_DISK_ENCRYPTION
-  if (is_ice_enabled())
-    convert_key_to_hex_ascii(master_key, sizeof(int), master_key_ascii);
-  else
     convert_key_to_hex_ascii(master_key, crypt_ftr->keysize, master_key_ascii);
 #else
   convert_key_to_hex_ascii(master_key, crypt_ftr->keysize, master_key_ascii);
@@ -1146,9 +1143,6 @@ static int create_crypto_blk_dev(struct crypt_mnt_ftr *crypt_ftr, unsigned char 
       property_get("ro.crypto.state", encrypted_state, ""); /* FDE completed */
       property_get("vold.encrypt_progress", progress, ""); /* FDE in progress */
       if (!strcmp(encrypted_state, "encrypted") || strcmp(progress, "")) {
-          if (is_ice_enabled())
-              extra_params = "fde_enabled ice";
-          else
           extra_params = "fde_enabled";
       }
       else
@@ -1836,23 +1830,12 @@ static int test_mount_encrypted_fs(struct crypt_mnt_ftr* crypt_ftr,
       rc = -1;
     }
     else {
-      if (is_ice_enabled()) {
-#if 0
-        if (create_crypto_blk_dev(crypt_ftr, &key_index,
-                            real_blkdev, crypto_blkdev, label)) {
-          SLOGE("Error creating decrypted block device\n");
-          rc = -1;
-          goto errout;
-        }
-#endif
-      } else {
         if (create_crypto_blk_dev(crypt_ftr, decrypted_master_key,
                             real_blkdev, crypto_blkdev, label)) {
           SLOGE("Error creating decrypted block device\n");
           rc = -1;
           goto errout;
         }
-      }
     }
   } else {
     /* in case HW FDE is delivered through OTA  and device is already encrypted
@@ -3273,13 +3256,7 @@ int cryptfs_enable_internal(char *howarg, int crypt_type, char *passwd,
 
     decrypt_master_key(passwd, decrypted_master_key, &crypt_ftr, 0, 0);
 #ifdef CONFIG_HW_DISK_ENCRYPTION
-    if (is_hw_disk_encryption((char*)crypt_ftr.crypto_type_name) && is_ice_enabled()) {
-#if 0
-      create_crypto_blk_dev(&crypt_ftr, &key_index, real_blkdev, crypto_blkdev,
-                          "userdata");
-#endif
-     } else
-      create_crypto_blk_dev(&crypt_ftr, decrypted_master_key, real_blkdev, crypto_blkdev,
+    create_crypto_blk_dev(&crypt_ftr, decrypted_master_key, real_blkdev, crypto_blkdev,
                           "userdata");
 
 #else
